@@ -1,0 +1,114 @@
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+
+
+def calculate_h(x, w, bias):
+    return np.dot(x, w) + bias
+
+
+def calculate_activation(val):
+    return 1 / (1 + 2.71828 ** (-val))
+
+
+def calculate_pred(val):
+    return [lambda: 0, lambda: 1][val < 0.5]()
+
+
+def calculate_delta_theta(activation, label, x):
+    dbias = 2 * (activation - label) * (1 - activation) * activation
+    return x * dbias, dbias
+
+
+def update_theta(delta_parm, delta_bias, parm, bias):
+    return parm - delta_parm, bias - delta_bias
+
+
+def calculate_error(label, activation):
+    return (label - activation) ** 2
+
+
+def predict(x, w, bias):
+    h = calculate_h(x, w, bias)
+    s = calculate_activation(h)
+    prediction = calculate_pred(s)
+    return prediction, [lambda: "Iris - Versicolor", lambda: "Iris - Setosa"][prediction == 0](), s
+
+
+def validation(val, y_val, w, bias, validation_array):
+    error = 0
+    for i in range(len(y_val)):
+        _, _, s = predict(val[i], w, bias)
+        error = error + calculate_error(y_val[i], s) / len(y_val)
+    validation_array.append(error)
+    return 0
+
+
+def plot(validation_array, average_error_array):
+    fig = plt.figure()
+    fig.suptitle('MSE Graph')
+    print(len(validation_array))
+    plt.plot(list(range(1, len(validation_array) + 1)), validation_array, label="MSE validasi")
+    plt.plot(list(range(1, len(average_error_array) + 1)), average_error_array, label="MSE training")
+
+    plt.xlabel('Epoch')
+    plt.ylabel('MSE')
+    plt.legend()
+
+    return plt.show()
+
+
+from sklearn.linear_model import LinearRegression
+
+
+def main():
+    print("==================LINEAR CLASSIFIER ==================")
+    # Split train and validation
+    Cancer = datasets.load_breast_cancer()
+    Keys = list(Cancer.keys())
+    X = Cancer[Keys[0]]
+    y = Cancer[Keys[1]]
+    model = LinearRegression().fit(X, y)
+    x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
+    w = model.coef_
+    bias = model.intercept_
+    alpha = 0.1
+    training_epoch = 600
+    average_error_array = []
+    validation_array = []
+
+    # For Convergence
+    avg_error = 0.0
+    prev = 0.0
+    tmp = True
+
+    print("=========Training Result with learning rate ", alpha, " =========")
+    # Training
+    for x in range(training_epoch):
+
+        # Do for Each Epoch
+        error = 0
+        for i in range(len(y_train)):
+            hyp = calculate_h(x_train[i], w, bias)
+            activation = calculate_activation(hyp)
+            pred = calculate_pred(activation)
+            error = error + calculate_error(y_train[i], activation) / len(y_train)
+            delta_w, dbias = calculate_delta_theta(activation, y_train[i], x_train[i])
+            w, bias = update_theta(delta_w * alpha, dbias * alpha, w, bias)
+
+        # Calculate error for each epoch
+        prev = avg_error
+        avg_error = error
+        average_error_array.append(error)
+        validation(x_test, y_test, w, bias, validation_array)
+
+    print("theta 1 = ", w[0], "\ntheta 2 = ", w[1], "\ntheta 3 = ", w[2], "\ntheta 4 = ", w[3], "\nbias = ",
+          bias)
+
+    # Plot graph
+    print(len(validation_array))
+    plot(validation_array, average_error_array)
+
+
+main()
